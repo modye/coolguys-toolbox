@@ -1,0 +1,48 @@
+---
+version: '3.6'
+services:
+  elasticsearch_exporter:
+    container_name: elasticsearch_exporter
+    image: justwatch/elasticsearch_exporter:1.0.2
+    secrets:
+      - source: ca-cert.pem
+        target: /etc/prometheus/ca-cert.pem
+    command:
+      - '-es.uri=https://user:pwd@elastic.host:9200'
+      - '-es.all'
+      - '-es.indices'
+      - '-es.ca=/etc/prometheus/ca-cert.pem'
+
+    restart: always
+    ports:
+      - "127.0.0.1:9108:9108"
+    networks: ['elastic-monitoring']
+  
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:v2.5.0
+    secrets:
+      - source: prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+    restart: always
+    ports:
+    - "127.0.0.1:9090:9090"
+    networks: ['elastic-monitoring']
+
+  grafana:
+    image: grafana/grafana:5.3.2
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=mysecretpassword
+      - GF_SECURITY_ADMIN_USER=admin
+    ports:
+    - "127.0.0.1:3000:3000"
+    networks: ['elastic-monitoring']
+
+networks: {elastic-monitoring: {}}
+
+secrets:
+  prometheus.yml:
+    file: ./config/prometheus.yml
+  ca-cert.pem:
+    file: ./config/jks/ca-cert.pem
+
